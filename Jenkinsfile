@@ -43,7 +43,7 @@
 pipeline {
     agent any
     tools {
-        maven "maven-3.9"
+        maven "maven-3.9.14"
     }
 
     stages {
@@ -57,17 +57,19 @@ pipeline {
         stage("push image") {
             steps {
                 echo "building the docker image..."
-                def result = input (
-                    message: "TYPE VERSION",
-                    parameters: [
-                        string(name: 'VERSION', defaultValue: 'latest', description: 'version image')
-                    ]
-                )
+                script {
+                    def result = input(
+                        message: "TYPE VERSION",
+                        parameters: [
+                            string(name: 'VERSION', defaultValue: 'latest', description: 'version image')
+                        ]
+                    )
 
-                withCredentials([usernamePassword(credentialsId: 'github-credential-token', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                    sh "docker build -t thaiduong1705/java-maven-app:${result.VERSION} ."
-                    sh "echo $PASS | docker login -u $USER --password-stdin"
-                    sh "docker push thaiduong1705/java-maven-app:${result.VERSION}"
+                    withCredentials([usernamePassword(credentialsId: 'docker-credential', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                        sh "docker build -t thaiduong1705/java-maven-app:${result.VERSION} ."
+                        sh "echo $PASS | docker login -u $USER --password-stdin"
+                        sh "docker push thaiduong1705/java-maven-app:${result.VERSION}"
+                    }
                 }
             }
         }
@@ -77,8 +79,9 @@ pipeline {
                 echo 'deploying the application...'
             }
         }
+    }
 
-        post {
+    post {
             always {
                 cleanWs()
             }
@@ -90,6 +93,5 @@ pipeline {
             failure {
                 echo "Build failed!"
             }
-        }
     }
 }
