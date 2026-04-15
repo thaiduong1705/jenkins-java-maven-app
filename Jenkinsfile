@@ -1,41 +1,95 @@
-def gv
+// def gv
 
-pipeline {   
+// pipeline {   
+//     agent any
+//     tools {
+//         maven 'Maven'
+//     }
+//     stages {
+//         stage("init") {
+//             steps {
+//                 script {
+//                     gv = load "script.groovy"
+//                 }
+//             }
+//         }
+//         stage("build jar") {
+//             steps {
+//                 script {
+//                     gv.buildJar()
+
+//                 }
+//             }
+//         }
+
+//         stage("build image") {
+//             steps {
+//                 script {
+//                     gv.buildImage()
+//                 }
+//             }
+//         }
+
+//         stage("deploy") {
+//             steps {
+//                 script {
+//                     gv.deployApp()
+//                 }
+//             }
+//         }               
+//     }
+// } 
+
+pipeline {
     agent any
     tools {
-        maven 'Maven'
+        maven "maven-3.9"
     }
+
     stages {
-        stage("init") {
-            steps {
-                script {
-                    gv = load "script.groovy"
-                }
-            }
-        }
         stage("build jar") {
             steps {
-                script {
-                    gv.buildJar()
-
-                }
+                echo 'building the application...'
+                sh 'mvn package'
             }
         }
 
-        stage("build image") {
+        stage("push image") {
             steps {
-                script {
-                    gv.buildImage()
+                echo "building the docker image..."
+                def result = input (
+                    message: "TYPE VERSION",
+                    parameters: [
+                        string(name: 'VERSION', defaultValue: 'latest', description: 'version image')
+                    ]
+                )
+
+                withCredentials([usernamePassword(credentialsId: 'github-credential-token', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                    sh "docker build -t thaiduong1705/java-maven-app:${result.VERSION} ."
+                    sh "echo $PASS | docker login -u $USER --password-stdin"
+                    sh "docker push thaiduong1705/java-maven-app:${result.VERSION}"
                 }
             }
         }
 
         stage("deploy") {
             steps {
-                script {
-                    gv.deployApp()
-                }
+                echo 'deploying the application...'
             }
-        }               
+        }
+
+        post {
+            always {
+                cleanWs()
+            }
+
+            success {
+                echo "Build successful!"
+            }
+
+            failure {
+                echo "Build failed!"
+            }
+        }
     }
-} 
+}
