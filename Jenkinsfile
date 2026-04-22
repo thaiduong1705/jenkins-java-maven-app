@@ -46,7 +46,7 @@ pipeline {
         maven "maven-3.9.14"
     }
 
-    triger { 
+    triggers {
         githubPush()
     }
 
