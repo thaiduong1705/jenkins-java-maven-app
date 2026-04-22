@@ -46,6 +46,10 @@ pipeline {
         maven "maven-3.9.14"
     }
 
+    triger { 
+        githubPush()
+    }
+
     stages {
         stage("build jar") {
             steps {
